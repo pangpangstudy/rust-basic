@@ -1,56 +1,64 @@
-fn main() {}
-/*
-fn main() {
-    let string1 = String::from("abcd");
-    let result;
-    {
-        // string2生命周期短
-        let string2 = String::from("xyz");
-        result = longest(string1.as_str(), string2.as_str());
-    }
-    // string2已经不存活了  但是result 还在借用string2  因为&'a str这里'a 就是生命周期短的那一个就是string2 所以报错
-    println!("The longest string is {}", result);
-    // fn longest(x: &str, y: &str) -> &str
+// Box 是 Rust 中用于在堆上分配内存的智能指针。它允许将数据存储在堆上，而不是栈上。
+// dyn State dyn 关键字表示这是一个 trait 对象 State 在这里是一个 trait（接口）的名称
+// Box<dyn State> 的组合作用 它创建了一个指向堆上分配的、实现了 State trait 的对象的指针 这允许使用动态分发，即在运行时决定调用哪个具体实现的方法。
+// Box 拥有它指向的数据，当 Box 被丢弃时，它指向的数据也会被释放
+/// 本结构体表示一个已发布的博文
+pub struct Post {
+    content: String,
 }
-// 'a 就是 x 和 y生命周期比较短的那一个
-fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
-    if x.len() > y.len() {
-        x
-    } else {
-        y
-    }
-}
- */
 
-/*
-fn main() {
-    let string1 = String::from("abcd");
-    let string2 = "xyz";
-    let result = longest(string1.as_str(), string2);
-    println!("The longest string is {}", result);
-    // fn longest(x: &str, y: &str) -> &str
-}
-// 'a 就是 x 和 y生命周期比较短的那一个
-fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
-    if x.len() > y.len() {
-        x
-    } else {
-        y
+impl Post {
+    /// 本方法用于创建一个草稿状态的博文
+    pub fn new() -> DraftPost {
+        DraftPost {
+            content: String::new(),
+        }
     }
-} */
 
-// 主要目标避免悬垂引用
-/*
-fn main() {
-
-    // 原因：被引用对象x的生命周期 要比 引用者短
-    let r;
-    {
-        let x = 5;
-        // borrowed value does not live long enough
-        r = &x;
-    } //这里x走出作用域`x` dropped here while still borrowed 内存释放
-      // 这里x的数据被释放 报错  -----> 借用检查器
-    println!("r:{}", r);
+    /// 本方法用于获取博文内容
+    pub fn content(&self) -> &str {
+        &self.content
+    }
 }
-*/
+
+/// 本结构体表示一个草稿状态的博文
+pub struct DraftPost {
+    content: String,
+}
+
+impl DraftPost {
+    /// 本方法用于向草稿中添加文本
+    pub fn add_text(&mut self, text: &str) {
+        self.content.push_str(text);
+    }
+
+    /// 本方法用于申请审批博文
+    pub fn request_review(self) -> PendingReviewPost {
+        PendingReviewPost {
+            content: self.content,
+        }
+    }
+}
+
+/// 本结构体表示一个待审批状态的博文
+pub struct PendingReviewPost {
+    content: String,
+}
+
+impl PendingReviewPost {
+    /// 本方法用于审批通过博文
+    pub fn approve(self) -> Post {
+        Post {
+            content: self.content,
+        }
+    }
+}
+fn main() {
+    let mut post = Post::new();
+    post.add_text("I ate a salad for lunch today");
+
+    let post = post.request_review();
+    let post = post.approve();
+
+    assert_eq!("I ate a salad for lunch today", post.content());
+}
